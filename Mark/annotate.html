@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>K14 — Слепая разметка BabyAI-PutNext</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f1419; color: #e6e6e6; height: 100vh; overflow: hidden;
+  }
+  header {
+    background: #1a2332; padding: 12px 20px; display: flex;
+    align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #2d3748;
+  }
+  header h1 { font-size: 18px; font-weight: 600; color: #60a5fa; }
+  .progress { font-size: 14px; color: #94a3b8; }
+  .progress b { color: #10b981; }
+  main { display: flex; height: calc(100vh - 56px); }
+  aside {
+    width: 280px; background: #141c27; border-right: 1px solid #2d3748;
+    overflow-y: auto; padding: 10px;
+  }
+  .ep-item {
+    padding: 8px 10px; margin-bottom: 4px; border-radius: 6px;
+    cursor: pointer; font-size: 12px; color: #cbd5e1;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .ep-item:hover { background: #1e293b; }
+  .ep-item.active { background: #1e3a8a; color: white; }
+  .ep-item.done { border-left: 3px solid #10b981; }
+  .ep-item.miss { border-left: 3px solid #ef4444; }
+  .ep-item.na { border-left: 3px solid #f59e0b; }
+  .ep-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: #334155; color: #94a3b8;
+  }
+  .ep-item.done .ep-tag { background: #064e3b; color: #6ee7b7; }
+  .ep-item.miss .ep-tag { background: #7f1d1d; color: #fca5a5; }
+  .ep-item.na .ep-tag { background: #78350f; color: #fcd34d; }
+  section {
+    flex: 1; padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .mission-box {
+    background: #1e293b; padding: 14px 18px; border-radius: 8px;
+    font-size: 16px; border-left: 4px solid #60a5fa;
+  }
+  .mission-box b { color: #60a5fa; }
+  .episode-id {
+    font-size: 13px; color: #94a3b8; margin-bottom: 8px;
+    padding: 6px 10px; background: #1e293b; border-radius: 6px;
+    display: inline-block;
+  }
+  .episode-id b { color: #60a5fa; }
+  video {
+    width: 100%; max-height: 420px; background: #000;
+    border-radius: 8px; border: 1px solid #2d3748;
+  }
+  .form-row {
+    background: #1e293b; padding: 16px; border-radius: 8px;
+  }
+  .form-row h3 { font-size: 14px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  .radio-group label {
+    flex: 1; min-width: 140px; padding: 12px; border: 2px solid #334155;
+    border-radius: 6px; cursor: pointer; text-align: center;
+    transition: all 0.15s;
+  }
+  .radio-group input { display: none; }
+  .radio-group input:checked + span { color: white; }
+  .radio-group label:has(input:checked) { border-color: #60a5fa; background: #1e3a8a; }
+  .radio-group label:hover { border-color: #60a5fa; }
+  .radio-group .lbl-yes span { color: #10b981; font-weight: 600; }
+  .radio-group .lbl-no span { color: #ef4444; font-weight: 600; }
+  .radio-group .lbl-na span { color: #f59e0b; font-weight: 600; }
+  .reason-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px; margin-top: 8px;
+  }
+  .reason-grid label {
+    padding: 10px; border: 1px solid #334155; border-radius: 6px;
+    cursor: pointer; font-size: 13px;
+  }
+  .reason-grid input { display: none; }
+  .reason-grid label:has(input:checked) { background: #7c2d12; border-color: #f97316; color: white; }
+  .reason-grid label:hover { border-color: #f97316; }
+  .reason-grid .r-code { font-weight: 700; color: #f97316; margin-right: 6px; }
+  .reason-grid label:has(input:checked) .r-code { color: #fdba74; }
+  textarea {
+    width: 100%; min-height: 60px; background: #0f1419;
+    border: 1px solid #334155; color: #e6e6e6; padding: 10px;
+    border-radius: 6px; font-family: inherit; font-size: 13px; resize: vertical;
+  }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    padding: 10px 18px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 14px; font-weight: 500;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #3b82f6; color: white; }
+  .btn-success { background: #10b981; color: white; }
+  .btn-warn { background: #f59e0b; color: #1a2332; }
+  .btn-ghost { background: #334155; color: #e6e6e6; }
+  .shortcuts {
+    font-size: 11px; color: #64748b; margin-top: 8px;
+    padding: 8px; background: #0f1419; border-radius: 6px;
+  }
+  .shortcuts kbd {
+    background: #334155; padding: 2px 6px; border-radius: 3px;
+    font-family: monospace; color: #e6e6e6;
+  }
+  .empty {
+    text-align: center; padding: 60px 20px; color: #64748b;
+  }
+  .empty button { margin-top: 16px; }
+  #fileInput { display: none; }
+  .instructions {
+    background: #1e293b; padding: 16px; border-radius: 8px;
+    font-size: 13px; line-height: 1.6; color: #cbd5e1;
+    margin-bottom: 16px;
+  }
+  .instructions h4 { color: #60a5fa; margin-bottom: 8px; }
+  .instructions ul { margin-left: 20px; margin-top: 8px; }
+  .instructions li { margin-bottom: 4px; }
+  .code-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+  .code-table th, .code-table td { border: 1px solid #334155; padding: 8px; text-align: left; }
+  .code-table th { background: #0f1419; color: #94a3b8; }
+  .blind-note {
+    font-size: 11px; color: #64748b; font-style: italic;
+    padding: 6px 10px; background: #0f1419; border-radius: 4px;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 K14 — Слепая разметка BabyAI-PutNext</h1>
+  <div class="progress">Размечено: <b id="doneCount">0</b> / <span id="totalCount">0</span></div>
+</header>
+
+<main>
+  <aside id="epList"></aside>
+
+  <section id="workspace">
+    <div class="empty" id="emptyState">
+      <h2>Папка с эпизодами не выбрана</h2>
+      <p style="margin-top:8px;">Нажмите кнопку ниже и выберите папку <code>episodes/</code> вашего проекта.</p>
+      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📁 Выбрать папку episodes/</button>
+      <input type="file" id="fileInput" webkitdirectory directory multiple>
+    </div>
+
+    <div id="playerState" style="display:none; flex-direction:column; gap:16px;">
+
+      <div class="instructions">
+        <h4>Инструкция по разметке</h4>
+        <p><b>Предмет A</b> — объект, который нужно перенести (первый в миссии).<br>
+        <b>Предмет B</b> — объект, рядом с которым нужно положить A (второй в миссии).</p>
+
+        <p style="margin-top:12px;"><b>Оценка 1</b> — агент взял предмет A и положил его на клетку, имеющую общую сторону с клеткой предмета B. На последнем кадре предметы сохраняют это положение.</p>
+
+        <p style="margin-top:8px;"><b>Оценка 0</b> — критерий не выполнен (например, агент перенёс B к A, оставил A в руках, нужное положение сохраняется с первого кадра без переноса).</p>
+
+        <p style="margin-top:8px;"><b>Н/О</b> — невозможно оценить (видео не открывается, отсутствует фрагмент, цвета не различимы, инструкция отсутствует).</p>
+
+        <table class="code-table">
+          <tr><th>Код</th><th>Когда применять</th></tr>
+          <tr><td><b>R1</b></td><td>A и B изначально имеют общую сторону, агент не выполнил нового переноса A</td></tr>
+          <tr><td><b>R2</b></td><td>Агент перенёс B к A (поменяны роли)</td></tr>
+          <tr><td><b>R3</b></td><td>A размещён рядом с B как побочный эффект беспорядочных действий</td></tr>
+          <tr><td><b>R6</b></td><td>Диагональ, ошибочный предмет, преждевременный конец эпизода, другое</td></tr>
+        </table>
+      </div>
+
+      <div class="blind-note">
+        🔒 Слепой режим: эпизоды показаны под анонимными ID. Имя файла, политика и успех среды скрыты.
+      </div>
+
+      <div class="episode-id">
+        <b>ID:</b> <span id="epIdText">—</span>
+      </div>
+
+      <div class="mission-box">
+        <b>Миссия:</b> <span id="missionText">—</span>
+      </div>
+
+      <video id="video" controls></video>
+
+      <div class="form-row">
+        <h3>Оценка осмысленности</h3>
+        <div class="radio-group">
+          <label class="lbl-yes"><input type="radio" name="label" value="1"><span>✅ 1 — Осмысленно выполнено</span></label>
+          <label class="lbl-no"><input type="radio" name="label" value="0"><span>❌ 0 — Не осмысленно</span></label>
+          <label class="lbl-na"><input type="radio" name="label" value="Н/О"><span>⚠️ Н/О — Невозможно оценить</span></label>
+        </div>
+      </div>
+
+      <div class="form-row" id="reasonSection" style="display:none;">
+        <h3>Код причины (при оценке 0)</h3>
+        <div class="reason-grid">
+          <label><input type="radio" name="reason" value=""><span class="r-code">—</span>нет кода</label>
+          <label><input type="radio" name="reason" value="R1"><span class="r-code">R1</span>уже рядом на старте</label>
+          <label><input type="radio" name="reason" value="R2"><span class="r-code">R2</span>поменяны роли (B к A)</label>
+          <label><input type="radio" name="reason" value="R3"><span class="r-code">R3</span>случайное достижение</label>
+          <label><input type="radio" name="reason" value="R6"><span class="r-code">R6</span>прочее (диагональ, ошибочный предмет)</label>
+        </div>
+      </div>
+
+      <div class="form-row" id="commentSection" style="display:none;">
+        <h3>Комментарий <span id="commentRequired" style="color:#ef4444;font-size:11px;"></span></h3>
+        <textarea id="comment" placeholder="Опишите причину (обязательно для R6 и Н/О)"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn-success" id="saveBtn">💾 Сохранить и далее →</button>
+        <button class="btn-ghost" id="skipBtn">⏭ Пропустить</button>
+        <button class="btn-warn" id="exportBtn">📤 Экспорт CSV</button>
+        <button class="btn-ghost" id="resetBtn">🔄 Сбросить всё</button>
+      </div>
+
+      <div class="shortcuts">
+        Горячие клавиши: <kbd>1</kbd> — осмысленно, <kbd>0</kbd> — не осмысленно, <kbd>N</kbd> — Н/О,
+        <kbd>←</kbd>/<kbd>→</kbd> — пред./след. эпизод, <kbd>Ctrl+S</kbd> — сохранить
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ========== СОСТОЯНИЕ ==========
+let episodes = [];        // [{file, name (оригинал), json}]
+let episodeIds = [];      // публичные анонимные ID: ["EP-001", "EP-002", ...]
+let annotations = {};     // {originalName: {label, reason, comment, ts}}
+let currentIdx = -1;
+
+const STORAGE_KEY = 'k14_annotations_v3_blind';
+
+// ========== ЗАГРУЗКА ПАПКИ ==========
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  const videos = files.filter(f => /\.(mp4|webm|mov|gif)$/i.test(f.name));
+  const jsons = files.filter(f => /\.json$/i.test(f.name));
+
+  if (videos.length === 0) {
+    alert('В папке не найдено видео (.mp4/.webm/.mov/.gif)');
+    return;
+  }
+
+  // Сортируем по имени файла — чтобы ID были детерминированными при перезагрузке
+  videos.sort((a, b) => a.name.localeCompare(b.name));
+
+  episodes = videos.map(v => {
+    const base = v.name.replace(/\.(mp4|webm|mov|gif)$/i, '');
+    const json = jsons.find(j => j.name.replace(/\.json$/i, '') === base);
+    return { file: v, name: base, json };
+  });
+
+  // Генерируем анонимные ID: EP-001, EP-002, ...
+  episodeIds = episodes.map((_, i) => 'EP-' + String(i + 1).padStart(3, '0'));
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { annotations = JSON.parse(saved); } catch(e) { annotations = {}; }
+  }
+
+  renderList();
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('playerState').style.display = 'flex';
+
+  const firstUnmarked = episodes.findIndex(ep => !annotations[ep.name]);
+  if (firstUnmarked >= 0) loadEpisode(firstUnmarked);
+  else loadEpisode(0);
+});
+
+// ========== РЕНДЕР СПИСКА (с анонимными ID) ==========
+function renderList() {
+  const list = document.getElementById('epList');
+  list.innerHTML = '';
+  let done = 0;
+
+  episodes.forEach((ep, i) => {
+    const ann = annotations[ep.name];
+    const div = document.createElement('div');
+    div.className = 'ep-item';
+    if (i === currentIdx) div.classList.add('active');
+    if (ann) {
+      if (ann.label === '1') div.classList.add('done');
+      else if (ann.label === '0') div.classList.add('miss');
+      else if (ann.label === 'Н/О') div.classList.add('na');
+      done++;
+    }
+    div.innerHTML = `
+      <span>${episodeIds[i]}</span>
+      <span class="ep-tag">${ann ? (ann.label === '1' ? '✓' : ann.label === '0' ? '✗' : '⚠') + (ann.reason ? ' '+ann.reason : '') : '—'}</span>
+    `;
+    div.onclick = () => loadEpisode(i);
+    list.appendChild(div);
+  });
+
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('totalCount').textContent = episodes.length;
+}
+
+// ========== ЗАГРУЗКА ЭПИЗОДА ==========
+function loadEpisode(idx) {
+  if (idx < 0 || idx >= episodes.length) return;
+  currentIdx = idx;
+  const ep = episodes[idx];
+
+  const url = URL.createObjectURL(ep.file);
+  const video = document.getElementById('video');
+  video.src = url;
+  video.load();
+
+  // Показываем только анонимный ID (без имени файла)
+  document.getElementById('epIdText').textContent = episodeIds[idx];
+
+  let mission = '(метаинформация недоступна)';
+  if (ep.json) {
+    ep.json.text().then(txt => {
+      try {
+        const meta = JSON.parse(txt);
+        mission = meta.mission || mission;
+      } catch(e) {}
+      document.getElementById('missionText').textContent = mission;
+    });
+  } else {
+    document.getElementById('missionText').textContent = mission;
+  }
+
+  const ann = annotations[ep.name];
+  document.querySelectorAll('input[name="label"]').forEach(r => r.checked = false);
+  document.querySelectorAll('input[name="reason"]').forEach(r => r.checked = false);
+  document.getElementById('comment').value = '';
+
+  if (ann) {
+    const lbl = document.querySelector(`input[name="label"][value="${ann.label}"]`);
+    if (lbl) lbl.checked = true;
+    const rsn = document.querySelector(`input[name="reason"][value="${ann.reason || ''}"]`);
+    if (rsn) rsn.checked = true;
+    document.getElementById('comment').value = ann.comment || '';
+    updateFormVisibility();
+  } else {
+    document.getElementById('reasonSection').style.display = 'none';
+    document.getElementById('commentSection').style.display = 'none';
+  }
+
+  renderList();
+}
+
+// ========== ОБНОВЛЕНИЕ ВИДИМОСТИ ФОРМ ==========
+function updateFormVisibility() {
+  const label = document.querySelector('input[name="label"]:checked');
+  const reasonSection = document.getElementById('reasonSection');
+  const commentSection = document.getElementById('commentSection');
+  const commentRequired = document.getElementById('commentRequired');
+
+  if (label && label.value === '0') {
+    reasonSection.style.display = 'block';
+    commentSection.style.display = 'block';
+    commentRequired.textContent = '(обязателен для R6)';
+  } else if (label && label.value === 'Н/О') {
+    reasonSection.style.display = 'none';
+    commentSection.style.display = 'block';
+    commentRequired.textContent = '(обязателен)';
+  } else {
+    reasonSection.style.display = 'none';
+    commentSection.style.display = 'none';
+  }
+}
+
+document.querySelectorAll('input[name="label"]').forEach(r => {
+  r.addEventListener('change', updateFormVisibility);
+});
+
+// ========== СОХРАНЕНИЕ ==========
+document.getElementById('saveBtn').onclick = saveCurrent;
+document.getElementById('skipBtn').onclick = () => {
+  if (currentIdx < episodes.length - 1) loadEpisode(currentIdx + 1);
+};
+
+function saveCurrent() {
+  if (currentIdx < 0) return;
+  const ep = episodes[currentIdx];
+  const label = document.querySelector('input[name="label"]:checked');
+  const reason = document.querySelector('input[name="reason"]:checked');
+
+  if (!label) {
+    alert('Выберите оценку: 1, 0 или Н/О');
+    return;
+  }
+
+  const reasonVal = reason ? reason.value : '';
+  const comment = document.getElementById('comment').value.trim();
+
+  if (label.value === '0' && reasonVal === 'R6' && !comment) {
+    alert('Для кода R6 обязателен комментарий');
+    return;
+  }
+
+  if (label.value === 'Н/О' && !comment) {
+    alert('Для оценки Н/О обязателен комментарий');
+    return;
+  }
+
+  annotations[ep.name] = {
+    label: label.value,
+    reason: reasonVal,
+    comment,
+    ts: new Date().toISOString()
+  };
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+  renderList();
+
+  let next = currentIdx + 1;
+  while (next < episodes.length && annotations[episodes[next].name]) next++;
+  if (next < episodes.length) loadEpisode(next);
+  else alert('✅ Все эпизоды размечены! Можно экспортировать CSV.');
+}
+
+// ========== ЭКСПОРТ CSV (с двумя ID: публичным и оригинальным) ==========
+document.getElementById('exportBtn').onclick = () => {
+  const rows = [['id', 'file', 'label', 'reason', 'comment', 'timestamp']];
+  Object.entries(annotations).forEach(([name, ann]) => {
+    const idx = episodes.findIndex(ep => ep.name === name);
+    const publicId = idx >= 0 ? episodeIds[idx] : name;
+    rows.push([
+      publicId,
+      name,
+      ann.label,
+      ann.reason || '',
+      (ann.comment || '').replace(/\n/g, ' ').replace(/"/g, '""'),
+      ann.ts
+    ]);
+  });
+
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `annotations_blind_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ========== СБРОС ==========
+document.getElementById('resetBtn').onclick = () => {
+  if (confirm('Удалить все сохранённые аннотации? Это действие необратимо.')) {
+    annotations = {};
+    localStorage.removeItem(STORAGE_KEY);
+    renderList();
+    if (episodes.length > 0) loadEpisode(0);
+  }
+};
+
+// ========== ГОРЯЧИЕ КЛАВИШИ ==========
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === '1') {
+    document.querySelector('input[name="label"][value="1"]').checked = true;
+    updateFormVisibility();
+  } else if (e.key === '0') {
+    document.querySelector('input[name="label"][value="0"]').checked = true;
+    updateFormVisibility();
+  } else if (e.key === 'n' || e.key === 'N' || e.key === 'т' || e.key === 'Т') {
+    document.querySelector('input[name="label"][value="Н/О"]').checked = true;
+    updateFormVisibility();
+  } else if (e.key === 'ArrowRight' && currentIdx < episodes.length - 1) {
+    loadEpisode(currentIdx + 1);
+  } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+    loadEpisode(currentIdx - 1);
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveCurrent();
+  }
+});
+</script>
+</body>
+</html>
